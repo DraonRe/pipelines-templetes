@@ -1,0 +1,89 @@
+steps:
+  - task: Bash@3
+    displayName: 'Notificacion Inicial - Pipeline Iniciado'
+    condition: always()
+    inputs:
+      targetType: inline
+      script: |
+        #!/bin/bash
+        # Set variables from arguments
+
+        currentBranch=$(Build.SourceBranchName)
+        buildId=$(Build.BuildId)
+        authorCommit=$(git log -1 --pretty=format:'%an' 2> /dev/null)
+        authorCommitEmail=$(git log -1 --pretty=format:'%ae' 2> /dev/null)
+        commitReference=$(git show -s --format='%h %s' 2> /dev/null)
+        webHookUrl=$(webhook-url-microfront)
+        repositoryName=$(Build.Repository.Name)
+        repositoryGroupURL=$(azure-url)
+        startTime=$(TZ='America/Bogota' date +"%Y-%m-%d %H:%M:%S")  # Ajuste para zona horaria UTC-5
+        jobName=$(Agent.JobName)  # Variable para el nombre del job
+        body=$(cat << EOF
+        {
+          "cards": [
+            {
+              "header": {
+                "title": "Pipeline Iniciado en el ciclo de ${jobName} - ${repositoryName}",
+                "subtitle": "Rama: ${currentBranch}",
+                "imageUrl": "https://img.icons8.com/fluency/240/play.png"
+              },
+              "sections": [
+                {
+                  "widgets": [
+                    {
+                      "textParagraph": {
+                        "text": "<p><font color=\"#007E33\">El pipeline ha sido iniciado</font></p>"
+                      }
+                    },
+                    {
+                      "keyValue": {
+                        "topLabel": "Hora de Inicio:",
+                        "content": "${startTime}"
+                      }
+                    },
+                    {
+                      "keyValue": {
+                        "topLabel": "Commit:",
+                        "content": "${commitReference}"
+                      }
+                    },
+                    {
+                      "keyValue": {
+                        "topLabel": "Autor del Commit:",
+                        "content": "${authorCommit} - ${authorCommitEmail}"
+                      }
+                    },
+                    {
+                      "keyValue": {
+                        "topLabel": "Job en Ejecución:",
+                        "content": "${jobName}"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "widgets": [
+                    {
+                      "buttons": [
+                        {
+                          "textButton": {
+                            "text": "Logs Ejecución",
+                            "onClick": {
+                              "openLink": {
+                                "url": "${repositoryGroupURL}/_build/results?buildId=${buildId}&view=results"
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        EOF
+        )
+
+        curl -s -X POST -H 'Content-Type: application/json' "${webHookUrl}" -d "$body"

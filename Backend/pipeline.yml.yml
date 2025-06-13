@@ -1,0 +1,7 @@
+stages:
+  - stage: Deploy_Lambda
+    displayName: 'Deploy'
+    jobs:
+      #- template: ci-cd-template.yml@Template
+      - template: ci-node.yml@Template
+      - template: ci-cmd.yml@Template

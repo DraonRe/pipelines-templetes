@@ -1,0 +1,17 @@
+jobs:
+ - job: CINode
+   
+   steps:
+
+   - checkout: self
+##----------CI--------------
+    # Llamada al template aviso.yml
+   - template: notificacionesLambda/notificacion-inicio.yml@Template
+
+   - task: NodeTool@0
+     displayName: Instalar Node
+     inputs:
+       versionSource: 'spec'
+       versionSpec: $(nodeVersion)
+      
+   - template: notificacionesLambda/notify.yml@Template

@@ -1,0 +1,18 @@
+steps:
+# Subir archivos a un bucket
+
+- task: AWSCLI@1
+  displayName: 'Sincronizar con S3'
+  inputs:
+    awsCredentials: '$(awsServiceConnection)'
+    regionName: 'us-east-1'
+    awsCommand: 's3'
+    awsSubCommand: 'sync'
+    awsArguments: './archivos s3://$(bucket) --region us-east-1'
+
+- task: CmdLine@2
+  inputs:
+    script: |
+      echo Write your commands here
+      
+      echo Hello world

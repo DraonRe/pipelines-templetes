@@ -1,0 +1,74 @@
+
+steps:
+##----------CI--------------
+# # Llamada al template aviso.yml
+# - template: aviso.yml@Template
+
+- task: NodeTool@0
+  displayName: Instalar Node
+  inputs:
+    versionSource: 'spec'
+    versionSpec: $(nodeVersionArroz)
+
+
+- task: CmdLine@2
+  displayName: Instalar dependencias
+  inputs:
+    script: 'npm install'
+
+
+
+# - task: CmdLine@2
+#   displayName: Instalar Angular
+#   inputs:
+#     script: 'npm install -g @angular/cli@$(angularVersion)'
+
+# - task: CmdLine@2
+#   displayName: Compilar
+#   inputs:
+#     script: 'ng build'
+
+# #Prueba para Pruebas Unitarias
+# - task: CmdLine@2
+#   displayName: Ejecutar pruebas unitarias
+#   inputs:
+#     script: 'npm test --coverage'
+
+# # Configuración y ejecución de SonarCloud
+# - task: SonarCloudPrepare@2
+#   inputs:
+#     SonarCloud: 'SonarPrueba'  
+#     organization: 'pet-book'  
+#     scannerMode: 'CLI'
+#     extraProperties: |
+#       sonar.projectKey="johanmaury_pet-book"
+#       sonar.projectName="pet-book"
+#       sonar.sources=$(Build.SourcesDirectory)/src
+#       sonar.exclusions=**/node_modules/**, **/dist/**, **/*.spec.ts
+#       sonar.test.inclusions=**/*.spec.ts
+#       sonar.html.file.suffixes=.html
+#       sonar.css.file.suffixes=.css,.scss
+
+
+# - task: SonarCloudAnalyze@2
+#   displayName: Análisis SonarCloud
+
+# - task: SonarCloudPublish@2
+#   displayName: Publicar resultados en SonarCloud
+#   inputs:
+#     pollingTimeoutSec: '300'
+
+
+# #----------CD--------------
+
+# - task: AWSCLI@1
+#   displayName: Subir a S3
+#   inputs:
+#     awsCredentials: 'AwsConnection'
+#     regionName: 'us-east-1'
+#     awsCommand: 's3'
+#     awsSubCommand: 'cp'
+#     awsArguments: 'dist/app-pre-dojo s3://$(bucket)/ --recursive'
+
+# # Llamada al template notificacion final.yml
+# #- template: notifyNew.yml@Template

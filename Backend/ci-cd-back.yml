@@ -1,0 +1,33 @@
+steps:
+#-----------   CI ------------------  
+
+#Tarea de gradlew version de java 1.8 - clean - build
+- task: Gradle@3
+  displayName: 'gradlew build'
+  inputs:
+    gradleWrapperFile: 'gradlew'
+    workingDirectory: ''
+    tasks: 'clean build'
+    javaHomeOption: 'JDKVersion'
+    jdkVersionOption: $(javaVersion)
+    jdkArchitectureOption: 'x64'
+    options: ''    
+    sonarQubeRunAnalysis: false
+    spotBugsAnalysis: false
+
+#Tarea para copiar los artefactos necesarios
+- task: CopyFiles@2
+  displayName: 'Copy JAR to Artifact Directory'
+  inputs:
+    SourceFolder: '$(System.DefaultWorkingDirectory)/build/libs'
+    Contents: '**/*.jar'
+    TargetFolder: '$(Build.ArtifactStagingDirectory)'
+    CleanTargetFolder: true
+
+#Tarea para publicar el artefacto
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish Artifact: JAR'
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+    ArtifactName: 'JAR'
+    publishLocation: 'Container'

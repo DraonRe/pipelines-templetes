@@ -1,0 +1,19 @@
+jobs:
+  - job : CICMD
+    dependsOn: CINode
+    steps:
+    - template: notificacionesLambda/notificacion-inicio.yml@Template
+    - task: CmdLine@2
+      displayName: Instalar dependencias
+      inputs:
+        script: 'npm install'
+
+    # Pausa de 60 segundos
+    - task: PowerShell@2
+      displayName: Pausa de 60 segundos
+      inputs:
+        targetType: 'inline'
+        script: 'Start-Sleep -Seconds 60'
+
+    # Llamada al template notificacion final.yml
+    - template: notificacionesLambda/notify.yml@Template

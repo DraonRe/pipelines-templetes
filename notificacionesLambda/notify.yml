@@ -1,0 +1,120 @@
+steps:
+  - task: Bash@3
+    displayName: 'Google Chat Alert'
+    condition: always()  # Esto asegura que se ejecute siempre, incluso si las tareas anteriores fallan
+    inputs:
+      targetType: inline
+      script: |
+        #!/bin/bash
+        # Set variables from arguments
+
+        currentBranch=$(Build.SourceBranchName)
+        buildStatus=$(Agent.JobStatus)
+        buildId=$(Build.BuildId)
+        authorCommit=$(git log -1 --pretty=format:'%an' 2> /dev/null)
+        authorCommitEmail=$(git log -1 --pretty=format:'%ae' 2> /dev/null)
+        commitReference=$(git show -s --format='%h %s' 2> /dev/null)
+        jobName=$(Agent.JobName)  # Nombre del job actual
+        webHookUrl=$(webhook-url-microfront)
+        repositoryName=$(Build.Repository.Name)
+        repositoryGroupURL=$(azure-url)
+        stage=$(stage)
+
+        # Variables para capturar errores de tareas específicas
+        taskError=""
+
+        # Verificar si alguna tarea falló y asignar un mensaje específico
+        if [[ "$buildStatus" == "Failed" ]]; then
+          # Aquí puedes asignar el nombre de la tarea específica que falló
+          if [[ "$(Agent.CurrentTaskName)" == "NodeTool@0" ]]; then
+            taskError="La tarea NodeTool falló al intentar instalar Node."
+          elif [[ "$(Agent.CurrentTaskName)" == "Bash@3" ]]; then
+            taskError="La tarea de alerta Bash falló al ejecutar el script."
+          else
+            taskError="Error en la ejecución del job ${jobName}. Revise los logs en ${repositoryGroupURL}/_build/results?buildId=${buildId}"
+          fi
+        fi
+
+        # Colores e imágenes según el estado del build
+        case "$buildStatus" in
+        "Succeeded") fontColor="#007E33" ; imageCard="https://img.icons8.com/fluency/240/ok--v1.png" ; spanish="Completado" ;;
+        "SucceededWithIssues") fontColor="#FF8800" ; imageCard="https://img.icons8.com/color/240/error--v1.png" ; spanish="Completado con problemas" ;;
+        "Failed") fontColor="#CC0000" ; imageCard="https://img.icons8.com/fluency/240/cancel.png" ; spanish="Falló" ;;
+        esac
+
+        # Construir cuerpo del mensaje JSON
+        body=$(cat << EOF
+        {
+          "cards": [
+            {
+              "header": {
+                "title": "Resultado Ejecución Pipeline ${stage} - Job: ${jobName}",
+                "subtitle": "${repositoryName}",
+                "imageUrl": "${imageCard}"
+              },
+              "sections": [
+                {
+                  "widgets": [
+                    {
+                      "textParagraph": {
+                        "text": "<p><font color=\"${fontColor}\">Pipeline ${spanish} en el job <strong>${jobName}</strong></font></p>"
+                      }
+                    },
+                    {
+                      "keyValue": {
+                        "topLabel": "Rama:",
+                        "content": "${currentBranch}"
+                      }
+                    },
+                    {
+                      "keyValue": {
+                        "topLabel": "Commit:",
+                        "content": "${commitReference}"
+                      }
+                    },
+                    {
+                      "keyValue": {
+                        "topLabel": "Autor:",
+                        "content": "${authorCommit} - ${authorCommitEmail}"
+                      }
+                    },
+                    {
+                      "keyValue": {
+                        "topLabel": "Estado del Job:",
+                        "content": "${spanish}"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "widgets": [
+                    {
+                      "textParagraph": {
+                        "text": "<p><font color=\"#CC0000\">${taskError}</font></p>"
+                      }
+                    },
+                    {
+                      "buttons": [
+                        {
+                          "textButton": {
+                            "text": "Logs Ejecución",
+                            "onClick": {
+                              "openLink": {
+                                "url": "${repositoryGroupURL}/_build/results?buildId=${buildId}&view=results"
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        EOF
+        )
+
+        # Enviar notificación a Google Chat
+        curl -s -X POST -H 'Content-Type: application/json' "${webHookUrl}" -d "$body"
